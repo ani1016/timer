@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Fullscreen Countdown Timer</title>
+    <title>Countdown Timer</title>
     <style>
       * {
         margin: 0;
@@ -13,136 +13,360 @@
       body {
         font-family: Arial, sans-serif;
         background: #f0f0f0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        min-height: 100vh;
-        padding-top: 50px;
-        transition: background-color 0.5s;
+        color: #333;
+        transition: background-color 0.5s, color 0.5s;
       }
 
-      h1 {
+      .screen {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .screen.active {
+        display: flex;
+      }
+
+      .main-screen h1 {
         margin-bottom: 20px;
-        color: #333;
       }
 
       .buttons {
         display: flex;
         gap: 10px;
-        margin-bottom: 30px;
         flex-wrap: wrap;
         justify-content: center;
+        margin-bottom: 20px;
       }
 
-      .buttons button {
+      .buttons button,
+      .manual-input button,
+      .controls button {
         padding: 12px 20px;
         font-size: 16px;
-        cursor: pointer;
         border: none;
         background-color: #007bff;
         color: white;
         border-radius: 5px;
+        cursor: pointer;
         transition: background-color 0.3s;
       }
 
-      .buttons button:hover {
+      .buttons button:hover,
+      .manual-input button:hover,
+      .controls button:hover {
         background-color: #0056b3;
       }
 
-      .timer {
-        font-size: 120px; /* Увеличен размер */
-        font-weight: bold;
-        color: #2c3e50;
-        min-height: 120px;
+      .manual-input {
+        margin-bottom: 20px;
         text-align: center;
-        transition: color 0.3s;
       }
 
-      /* Fullscreen black mode */
-      body.dark-mode {
-        background: black;
-        justify-content: center;
-        padding: 0;
+      .manual-input input {
+        padding: 5px;
+        font-size: 16px;
+        width: 70px;
+        margin: 0 5px;
       }
 
-      body.dark-mode .timer {
+      .timer {
+        font-size: 120px;
+        font-weight: bold;
+        text-align: center;
         color: white;
-        font-size: 140px; /* Ещё больше в режиме отсчёта */
       }
 
-      body.dark-mode .buttons,
-      body.dark-mode h1 {
+      .dark {
+        background: black;
+        color: white;
+      }
+
+      .controls {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .hidden {
         display: none;
+      }
+
+      /* Timer Screen */
+      #timerScreen {
+        background: black;
+        color: white;
+      }
+
+      #timerScreen .timer {
+        font-size: 140px;
+      }
+
+      #backBtn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: transparent;
+        border: 2px solid white;
+        color: white;
+        padding: 10px 15px;
+        font-size: 16px;
       }
     </style>
   </head>
   <body>
-    <h1>Select Countdown Time (Hours)</h1>
+    <!-- MAIN SCREEN -->
+    <div id="mainScreen" class="screen active main-screen">
+      <h1>Select Countdown Time</h1>
 
-    <div class="buttons">
-      <button data-hours="1">1 Hours</button>
-      <button data-hours="2">2 Hours</button>
-      <button data-hours="3">3 Hours</button>
-      <button data-hours="4">4 Hours</button>
-      <button data-hours="5">5 Hours</button>
-      <button data-hours="6">6 Hours</button>
-      <button data-hours="7">7 Hours</button>
-      <button data-hours="8">8 Hours</button>
-      <button data-hours="9">9 Hours</button>
+      <div class="buttons">
+        <button data-seconds="900">15 Min</button>
+        <button data-seconds="1800">30 Min</button>
+        <button data-seconds="2700">45 Min</button>
+        <button data-seconds="3600">1 Hour</button>
+        <button data-seconds="7200">2 Hours</button>
+        <button data-seconds="10800">3 Hours</button>
+        <button data-seconds="14400">4 Hours</button>
+        <button data-seconds="18000">5 Hours</button>
+        <button data-seconds="21600">6 Hours</button>
+        <button data-seconds="25200">7 Hours</button>
+      </div>
+
+      <div class="manual-input">
+        <label
+          >Hours: <input type="number" id="hoursInput" min="0" value="0"
+        /></label>
+        <label
+          >Minutes:
+          <input type="number" id="minutesInput" min="0" max="59" value="0"
+        /></label>
+        <label
+          >Seconds:
+          <input type="number" id="secondsInput" min="0" max="59" value="0"
+        /></label>
+        <button id="startCustom">Start Custom</button>
+      </div>
+
+      <div class="controls">
+        <button id="toggleSoundBtn">🔊 Sound: On</button>
+        <button id="toggleThemeBtn">🌓 Toggle Theme</button>
+        <label>
+          Volume:
+          <input
+            type="range"
+            id="volumeControl"
+            min="0"
+            max="1"
+            step="0.01"
+            value="1"
+          />
+        </label>
+      </div>
     </div>
 
-    <div id="countdown" class="timer">00:00:00</div>
+    <!-- TIMER SCREEN -->
+    <div id="timerScreen" class="screen dark">
+      <button id="backBtn">← Back</button>
+      <div id="countdown" class="timer">00:00:00</div>
+      <div class="controls">
+        <button id="pauseBtn" class="hidden">⏸ Pause</button>
+        <button id="resumeBtn" class="hidden">▶️ Resume</button>
+      </div>
+    </div>
+
+    <!-- AUDIO -->
+    <audio id="tickSound" src="ticking-clock-182894.mp3" loop></audio>
 
     <script>
       const buttons = document.querySelectorAll(".buttons button");
       const countdownEl = document.getElementById("countdown");
-      let timer = null;
-      let timeInSeconds = 0;
+      const tickSound = document.getElementById("tickSound");
+      const toggleSoundBtn = document.getElementById("toggleSoundBtn");
+      const toggleThemeBtn = document.getElementById("toggleThemeBtn");
+      const volumeControl = document.getElementById("volumeControl");
+
+      const pauseBtn = document.getElementById("pauseBtn");
+      const resumeBtn = document.getElementById("resumeBtn");
+      const startCustomBtn = document.getElementById("startCustom");
+      const backBtn = document.getElementById("backBtn");
+
+      const hoursInput = document.getElementById("hoursInput");
+      const minutesInput = document.getElementById("minutesInput");
+      const secondsInput = document.getElementById("secondsInput");
+
+      const mainScreen = document.getElementById("mainScreen");
+      const timerScreen = document.getElementById("timerScreen");
+
+      let timerInterval = null;
+      let endTime = null;
+      let paused = false;
+      let remainingTime = 0;
+      let soundEnabled = true;
+      let wakeLock = null;
 
       function formatTime(seconds) {
         const hrs = Math.floor(seconds / 3600);
         const mins = Math.floor((seconds % 3600) / 60);
         const secs = seconds % 60;
 
-        const h = hrs < 10 ? "0" + hrs : hrs;
-        const m = mins < 10 ? "0" + mins : mins;
-        const s = secs < 10 ? "0" + secs : secs;
+        return `${hrs.toString().padStart(2, "0")}:${mins
+          .toString()
+          .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+      }
 
-        return `${h}:${m}:${s}`;
+      async function requestWakeLock() {
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+          wakeLock.addEventListener("release", () =>
+            console.log("Wake Lock released")
+          );
+        } catch (err) {
+          console.error("Wake Lock error:", err);
+        }
+      }
+
+      function releaseWakeLock() {
+        if (wakeLock) {
+          wakeLock.release().then(() => (wakeLock = null));
+        }
       }
 
       function startCountdown(seconds) {
-        if (timer) clearInterval(timer);
+        if (timerInterval) clearInterval(timerInterval);
+        endTime = Date.now() + seconds * 1000;
+        remainingTime = seconds;
+        paused = false;
 
-        timeInSeconds = seconds;
+        showScreen(timerScreen);
+        showPause();
         updateDisplay();
 
-        // Turn on dark mode
-        document.body.classList.add("dark-mode");
+        if (soundEnabled) {
+          tickSound.currentTime = 0;
+          tickSound.play().catch(() => {});
+        }
 
-        timer = setInterval(() => {
-          timeInSeconds--;
-          updateDisplay();
+        requestWakeLock();
 
-          if (timeInSeconds <= 0) {
-            clearInterval(timer);
-            countdownEl.textContent = "Time's up!";
+        timerInterval = setInterval(() => {
+          if (!paused) {
+            const now = Date.now();
+            const remaining = Math.round((endTime - now) / 1000);
+
+            if (remaining <= 0) {
+              clearInterval(timerInterval);
+              countdownEl.textContent = "Time's up!";
+              tickSound.pause();
+              releaseWakeLock();
+              hidePauseResume();
+            } else {
+              remainingTime = remaining;
+              updateDisplay();
+            }
           }
         }, 1000);
       }
 
       function updateDisplay() {
-        countdownEl.textContent = formatTime(timeInSeconds);
+        countdownEl.textContent = formatTime(
+          remainingTime || Math.round((endTime - Date.now()) / 1000)
+        );
       }
 
-      buttons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const hours = parseInt(button.getAttribute("data-hours"));
-          const totalSeconds = hours * 3600;
-          startCountdown(totalSeconds);
+      function showPause() {
+        pauseBtn.classList.remove("hidden");
+        resumeBtn.classList.add("hidden");
+      }
+
+      function showResume() {
+        pauseBtn.classList.add("hidden");
+        resumeBtn.classList.remove("hidden");
+      }
+
+      function hidePauseResume() {
+        pauseBtn.classList.add("hidden");
+        resumeBtn.classList.add("hidden");
+      }
+
+      function showScreen(screen) {
+        mainScreen.classList.remove("active");
+        timerScreen.classList.remove("active");
+        screen.classList.add("active");
+      }
+
+      // Event listeners
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const seconds = parseInt(btn.dataset.seconds);
+          startCountdown(seconds);
         });
+      });
+
+      startCustomBtn.addEventListener("click", () => {
+        const h = parseInt(hoursInput.value) || 0;
+        const m = parseInt(minutesInput.value) || 0;
+        const s = parseInt(secondsInput.value) || 0;
+        const total = h * 3600 + m * 60 + s;
+        if (total > 0) startCountdown(total);
+      });
+
+      pauseBtn.addEventListener("click", () => {
+        paused = true;
+        showResume();
+        tickSound.pause();
+        releaseWakeLock();
+      });
+
+      resumeBtn.addEventListener("click", () => {
+        if (paused) {
+          paused = false;
+          endTime = Date.now() + remainingTime * 1000;
+          showPause();
+          if (soundEnabled) tickSound.play().catch(() => {});
+          requestWakeLock();
+        }
+      });
+
+      toggleSoundBtn.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        if (!soundEnabled) {
+          tickSound.pause();
+          toggleSoundBtn.textContent = "🔇 Sound: Off";
+        } else {
+          if (!paused) tickSound.play().catch(() => {});
+          toggleSoundBtn.textContent = "🔊 Sound: On";
+        }
+      });
+
+      toggleThemeBtn.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+      });
+
+      backBtn.addEventListener("click", () => {
+        clearInterval(timerInterval);
+        tickSound.pause();
+        releaseWakeLock();
+        hidePauseResume();
+        showScreen(mainScreen);
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (wakeLock !== null && document.visibilityState === "visible") {
+          requestWakeLock();
+        }
+      });
+
+      // Set initial volume
+      tickSound.volume = volumeControl.value;
+      volumeControl.addEventListener("input", () => {
+        tickSound.volume = volumeControl.value;
       });
     </script>
   </body>
 </html>
+
