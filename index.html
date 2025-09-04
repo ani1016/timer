@@ -97,7 +97,6 @@
         display: none;
       }
 
-      /* Timer Screen */
       #timerScreen {
         background: black;
         color: white;
@@ -117,6 +116,30 @@
         padding: 10px 15px;
         font-size: 16px;
       }
+
+      .last-timer-info {
+        margin-top: 15px;
+        font-size: 18px;
+        text-align: center;
+        color: #444;
+      }
+
+      .last-timer-info button {
+        margin-top: 10px;
+        background-color: #28a745;
+      }
+
+      .last-timer-info button:hover {
+        background-color: #1e7e34;
+      }
+
+      .clear-btn {
+        background-color: #dc3545 !important;
+      }
+
+      .clear-btn:hover {
+        background-color: #b52a37 !important;
+      }
     </style>
   </head>
   <body>
@@ -125,9 +148,9 @@
       <h1>Select Countdown Time</h1>
 
       <div class="buttons">
-        <button data-seconds="900">15 Min</button>
-        <button data-seconds="1800">30 Min</button>
-        <button data-seconds="2700">45 Min</button>
+        <button data-seconds="900">15 Minutes</button>
+        <button data-seconds="1800">30 Minutes</button>
+        <button data-seconds="2700">45 Minutes</button>
         <button data-seconds="3600">1 Hour</button>
         <button data-seconds="7200">2 Hours</button>
         <button data-seconds="10800">3 Hours</button>
@@ -167,6 +190,8 @@
           />
         </label>
       </div>
+
+      <div id="lastTimerInfo" class="last-timer-info"></div>
     </div>
 
     <!-- TIMER SCREEN -->
@@ -181,11 +206,13 @@
 
     <!-- AUDIO -->
     <audio id="tickSound" src="ticking-clock-182894.mp3" loop></audio>
+    <audio id="alarmSound" src="alarm.mp3"></audio>
 
     <script>
       const buttons = document.querySelectorAll(".buttons button");
       const countdownEl = document.getElementById("countdown");
       const tickSound = document.getElementById("tickSound");
+      const alarmSound = document.getElementById("alarmSound");
       const toggleSoundBtn = document.getElementById("toggleSoundBtn");
       const toggleThemeBtn = document.getElementById("toggleThemeBtn");
       const volumeControl = document.getElementById("volumeControl");
@@ -201,6 +228,7 @@
 
       const mainScreen = document.getElementById("mainScreen");
       const timerScreen = document.getElementById("timerScreen");
+      const lastTimerInfo = document.getElementById("lastTimerInfo");
 
       let timerInterval = null;
       let endTime = null;
@@ -237,6 +265,8 @@
       }
 
       function startCountdown(seconds) {
+        localStorage.setItem("lastTimerSeconds", seconds); // Save to memory
+
         if (timerInterval) clearInterval(timerInterval);
         endTime = Date.now() + seconds * 1000;
         remainingTime = seconds;
@@ -256,26 +286,26 @@
         timerInterval = setInterval(() => {
           if (!paused) {
             const now = Date.now();
-            const remaining = Math.round((endTime - now) / 1000);
+            const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+            remainingTime = remaining;
+            updateDisplay();
 
             if (remaining <= 0) {
               clearInterval(timerInterval);
               countdownEl.textContent = "Time's up!";
               tickSound.pause();
+              tickSound.currentTime = 0;
+              alarmSound.currentTime = 0;
+              alarmSound.play().catch(() => {});
               releaseWakeLock();
               hidePauseResume();
-            } else {
-              remainingTime = remaining;
-              updateDisplay();
             }
           }
         }, 1000);
       }
 
       function updateDisplay() {
-        countdownEl.textContent = formatTime(
-          remainingTime || Math.round((endTime - Date.now()) / 1000)
-        );
+        countdownEl.textContent = formatTime(remainingTime);
       }
 
       function showPause() {
@@ -299,7 +329,6 @@
         screen.classList.add("active");
       }
 
-      // Event listeners
       buttons.forEach((btn) => {
         btn.addEventListener("click", () => {
           const seconds = parseInt(btn.dataset.seconds);
@@ -334,13 +363,11 @@
 
       toggleSoundBtn.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
-        if (!soundEnabled) {
-          tickSound.pause();
-          toggleSoundBtn.textContent = "🔇 Sound: Off";
-        } else {
-          if (!paused) tickSound.play().catch(() => {});
-          toggleSoundBtn.textContent = "🔊 Sound: On";
-        }
+        toggleSoundBtn.textContent = soundEnabled
+          ? "🔊 Sound: On"
+          : "🔇 Sound: Off";
+        if (!soundEnabled) tickSound.pause();
+        else if (!paused && remainingTime > 0) tickSound.play().catch(() => {});
       });
 
       toggleThemeBtn.addEventListener("click", () => {
@@ -361,12 +388,30 @@
         }
       });
 
-      // Set initial volume
-      tickSound.volume = volumeControl.value;
       volumeControl.addEventListener("input", () => {
         tickSound.volume = volumeControl.value;
+        alarmSound.volume = volumeControl.value;
+      });
+
+      tickSound.volume = volumeControl.value;
+      alarmSound.volume = volumeControl.value;
+
+      // Show last timer info
+      window.addEventListener("DOMContentLoaded", () => {
+        const last = localStorage.getItem("lastTimerSeconds");
+        if (last) {
+          const seconds = parseInt(last);
+          const hrs = Math.floor(seconds / 3600);
+          const mins = Math.floor((seconds % 3600) / 60);
+          const secs = seconds % 60;
+
+          lastTimerInfo.innerHTML = `
+          <div>🧠 Last timer used: <strong>${hrs}h ${mins}m ${secs}s</strong></div>
+          <button onclick="startCountdown(${seconds})">Repeat Last Timer</button>
+          <button class="clear-btn" onclick="localStorage.removeItem('lastTimerSeconds'); location.reload()">Clear Memory</button>
+        `;
+        }
       });
     </script>
   </body>
 </html>
-
